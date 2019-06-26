@@ -1,0 +1,54 @@
+services:
+  app:
+    build:
+      args: {base_name: esper-base, cores: 80, device: cpu, tag: cpu}
+      context: .
+      dockerfile: docker/Dockerfile.app
+    depends_on: [db, frameserver, spark]
+    environment: [IPYTHON_PORT=8888, JUPYTER_PASSWORD=esperjupyter, COLUMNS=208, LINES=57,
+      TERM=xterm-256color, RUST_BACKTRACE=full, DEVICE=cpu, ESPER_ENV=local, DATA_PATH=DotMap(),
+      BASE_IMAGE_NAME=esper-base, DB_USER=will, POSTGRES_USER=will, DB_PASSWORD=foobar,
+      POSTGRES_PASSWORD=foobar, PGPASSWORD=foobar, FILESYSTEM=local, HOSTNAME=charlotte.stanford.edu]
+    image: scannerresearch/esper:cpu
+    ports: ['8000', '8888']
+    privileged: true
+    security_opt: [seccomp=unconfined]
+    tty: true
+    volumes: ['.:/app', '/home/wcrichto/esper/esper/django:/django', '/home/wcrichto/esper/esper:/opt/esper/esper',
+      '/home/wcrichto/esper/esper/../deps:/opt/deps', '/home/wcrichto/.esper/.bash_history:/root/.bash_history',
+      '/home/wcrichto/.esper/.cargo:/root/.cargo', '/home/wcrichto/.esper/.rustup:/root/.rustup',
+      '/home/wcrichto/.esper/.local:/root/.local', '/home/wcrichto/.esper/.jupyter:/root/.jupyter']
+  db:
+    build: {context: ./docker/db}
+    environment: [POSTGRES_DB=esper, ESPER_ENV=local, DATA_PATH=DotMap(), BASE_IMAGE_NAME=esper-base,
+      DB_USER=will, POSTGRES_USER=will, DB_PASSWORD=foobar, POSTGRES_PASSWORD=foobar,
+      PGPASSWORD=foobar, FILESYSTEM=local, HOSTNAME=charlotte.stanford.edu]
+    ports: ['5432']
+    volumes: ['./data/postgresql:/var/lib/postgresql/data', '.:/app']
+  frameserver:
+    environment: [WORKERS=160, ESPER_ENV=local, DATA_PATH=DotMap(), BASE_IMAGE_NAME=esper-base,
+      DB_USER=will, POSTGRES_USER=will, DB_PASSWORD=foobar, POSTGRES_PASSWORD=foobar,
+      PGPASSWORD=foobar, FILESYSTEM=local, HOSTNAME=charlotte.stanford.edu]
+    image: scannerresearch/frameserver
+    ports: ['7500:7500']
+    volumes: ['.:/host/app']
+  nginx:
+    build: {context: ./docker/nginx}
+    command: [bash, /tmp/subst.sh]
+    depends_on: [app, frameserver]
+    environment: [ESPER_ENV=local, DATA_PATH=DotMap(), BASE_IMAGE_NAME=esper-base,
+      DB_USER=will, POSTGRES_USER=will, DB_PASSWORD=foobar, POSTGRES_PASSWORD=foobar,
+      PGPASSWORD=foobar, FILESYSTEM=local, HOSTNAME=charlotte.stanford.edu]
+    ports: ['80:80', '8888:8888']
+    volumes: ['.:/app', './docker/nginx:/tmp', '/home/wcrichto/esper/esper/django:/django']
+  spark:
+    build:
+      args: {base_name: esper-base}
+      context: ./docker/spark
+    depends_on: [db]
+    environment: [ESPER_ENV=local, DATA_PATH=DotMap(), BASE_IMAGE_NAME=esper-base,
+      DB_USER=will, POSTGRES_USER=will, DB_PASSWORD=foobar, POSTGRES_PASSWORD=foobar,
+      PGPASSWORD=foobar, FILESYSTEM=local, HOSTNAME=charlotte.stanford.edu]
+    ports: ['7077']
+    volumes: ['./app:/app']
+version: '2.3'
