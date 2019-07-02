@@ -50,5 +50,5 @@ services:
       DB_USER=will, POSTGRES_USER=will, DB_PASSWORD=foobar, POSTGRES_PASSWORD=foobar,
       PGPASSWORD=foobar, FILESYSTEM=local, HOSTNAME=charlotte.stanford.edu]
     ports: ['7077']
-    volumes: ['./app:/app']
+    volumes: ['.:/app']
 version: '2.3'

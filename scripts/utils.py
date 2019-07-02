@@ -23,15 +23,36 @@ def img_grid(imgs, columns=3):
 
 
 def vgrid_traj(trajectories):
-    return vgrid_widget(
-        video_meta=[t.obj.video.for_vgrid() for t in trajectories],
-        interval_blocks=[
-            IntervalBlock(video_id=t.obj.video.id,
-                          interval_sets=[
-                              NamedIntervalSet(name='default',
-                                               interval_set=t.for_vgrid())
-                          ]) for t in trajectories
-        ])
+    def to_nis(t):
+        if isinstance(t, tuple) or isinstance(t, list):
+            return
+        else:
+            return [
+                NamedIntervalSet(name='default', interval_set=t.for_vgrid())
+            ]
+
+    meta = []
+    blocks = []
+    for t in trajectories:
+        if isinstance(t, tuple) or isinstance(t, list):
+            meta.append(t[0].obj.video.for_vgrid())
+            blocks.append(
+                IntervalBlock(video_id=t[0].obj.video.id,
+                              interval_sets=[
+                                  NamedIntervalSet(name=str(i),
+                                                   interval_set=t2.for_vgrid())
+                                  for i, t2 in enumerate(t)
+                              ]))
+        else:
+            meta.append(t.obj.video.for_vgrid())
+            blocks.append(
+                IntervalBlock(video_id=t.obj.video.id,
+                              interval_sets=[
+                                  NamedIntervalSet(name='default',
+                                                   interval_set=t.for_vgrid())
+                              ]))
+
+    return vgrid_widget(video_meta=meta, interval_blocks=blocks)
 
 
 def make_batch(signal, framerate):
